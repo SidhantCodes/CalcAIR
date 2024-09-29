@@ -9,7 +9,31 @@ from dotenv import load_dotenv
 
 from PIL import Image
 
+import streamlit as st
+
 load_dotenv()
+
+st.set_page_config(page_title="AI Math Solver", page_icon="✏️", layout="wide")
+
+
+
+# Create a header
+st.title("✏️ AI Math Problem Solver")
+st.markdown("Draw your math problem and get instant solutions!")
+
+
+col1, col2 = st.columns([1.5,1])
+with col1:
+    run = st.checkbox('Run', value=True)
+    FRAME_WINDOW = st.image([])
+    st.markdown("### 🖐️ Hand Gestures:")
+    st.markdown("- ☝️ Index finger: Draw")
+    st.markdown("- 🤏 Index + Pinky: Stop drawing")
+    st.markdown("- 🖐️ All fingers: Clear canvas")
+    st.markdown("- 🤘 All except pinky: Send to AI")
+with col2:
+    st.title("Answer")
+    st_output = st.subheader("")
 
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=gemini_api_key)
@@ -68,13 +92,13 @@ def draw(info, prev_pos, canvas):
 def sendToAI(model, canvas, fingers):
     if fingers == [1,1,1,1,0]:
         pil_image = Image.fromarray(canvas)
-        res = model.generate_content(["Solve this math problem", pil_image])
-        print(res.text)
+        res = model.generate_content(["Solve this math problem, and respond with the correct asnwer along with proper explanation!", pil_image])
+        return res.text
 
 prev_pos = None
 canvas = None
 image_combined = None
-
+answer = "Please Ask a question, I'd be happy to help you!😁"
 # Continuously get frames from the webcam
 while True:
     # Capture each frame from the webcam
@@ -91,13 +115,17 @@ while True:
         fingers, lmlist = info
         # print(fingers)
         prev_pos, canvas = draw(info, prev_pos, canvas)
-        sendToAI(model,canvas, fingers)
+        answer = sendToAI(model,canvas, fingers)
 
     image_combined = cv2.addWeighted(img, 0.7, canvas, 0.3, 0)
+    FRAME_WINDOW.image(image_combined, channels="BGR")
+    st_output.text(answer if answer!=None else 'Waiting for the question...') 
+
+    
     # Display the image in a window
     # cv2.imshow("Image", img)
     # cv2.imshow("Canvas", canvas)
-    cv2.imshow("image_canvas_combined", image_combined)
+    # cv2.imshow("image_canvas_combined", image_combined)
 
     # Keep the window open and update it for each frame; wait for 1 millisecond between frames
     cv2.waitKey(1)
