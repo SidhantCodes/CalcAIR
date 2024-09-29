@@ -23,7 +23,7 @@ st.set_page_config(page_title="AI Math Solver", page_icon="✏️", layout="wide
 
 
 # Create a header
-st.title("✏️ AI Math Problem Solver")
+st.title("✏️ CalcAIR")
 st.markdown("Draw your math problem and get instant solutions!")
 
 
