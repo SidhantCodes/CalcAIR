@@ -1,7 +1,19 @@
 import numpy as np
-import cvzone
+# import cvzone
 import cv2
 from cvzone.HandTrackingModule import HandDetector
+
+import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+
+from PIL import Image
+
+load_dotenv()
+
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=gemini_api_key)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Initialize the webcam to capture video
 # The '2' indicates the third camera connected to your computer; '0' would usually refer to the built-in camera
@@ -42,9 +54,22 @@ def draw(info, prev_pos, canvas):
         if prev_pos is None:
             prev_pos = curr_pos
         cv2.line(canvas, curr_pos, prev_pos, (255,0,255), 12)
+    elif fingers == [0, 1, 0, 0, 1]:
+        # Stop drawing when index and pinky fingers are up
+        curr_pos = None
+        prev_pos = None
+    elif fingers == [1, 1, 1, 1, 1]:
+        # Clear the entire canvas when all fingers are up
+        canvas.fill(0)  # Fill the canvas with black (assuming black background)
+        curr_pos = None
+        prev_pos = None
     return curr_pos, canvas
 
-
+def sendToAI(model, canvas, fingers):
+    if fingers == [1,1,1,1,0]:
+        pil_image = Image.fromarray(canvas)
+        res = model.generate_content(["Solve this math problem", pil_image])
+        print(res.text)
 
 prev_pos = None
 canvas = None
@@ -66,6 +91,7 @@ while True:
         fingers, lmlist = info
         # print(fingers)
         prev_pos, canvas = draw(info, prev_pos, canvas)
+        sendToAI(model,canvas, fingers)
 
     image_combined = cv2.addWeighted(img, 0.7, canvas, 0.3, 0)
     # Display the image in a window
