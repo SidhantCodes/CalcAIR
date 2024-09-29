@@ -6,8 +6,8 @@ from cvzone.HandTrackingModule import HandDetector
 # Initialize the webcam to capture video
 # The '2' indicates the third camera connected to your computer; '0' would usually refer to the built-in camera
 cap = cv2.VideoCapture(0)
-cap.set(3, 1280)
-cap.set(4, 720)
+cap.set(3, 1024)
+cap.set(4, 768)
 
 # Initialize the HandDetector class with the given parameters
 detector = HandDetector(staticMode=False, maxHands=1, modelComplexity=1, detectionCon=0.7, minTrackCon=0.5)
@@ -42,12 +42,13 @@ def draw(info, prev_pos, canvas):
         if prev_pos is None:
             prev_pos = curr_pos
         cv2.line(canvas, curr_pos, prev_pos, (255,0,255), 12)
-    return curr_pos
+    return curr_pos, canvas
 
 
 
 prev_pos = None
 canvas = None
+image_combined = None
 
 # Continuously get frames from the webcam
 while True:
@@ -57,16 +58,20 @@ while True:
 
     if canvas is None:
         canvas = np.zeros_like(img)
+        # image_combined = img.copy()
 
     img = cv2.flip(img, 1)
     info = getHandInfo(img)
     if info:
         fingers, lmlist = info
-        print(fingers)
-        prev_pos = draw(info, prev_pos, canvas)
+        # print(fingers)
+        prev_pos, canvas = draw(info, prev_pos, canvas)
+
+    image_combined = cv2.addWeighted(img, 0.7, canvas, 0.3, 0)
     # Display the image in a window
-    cv2.imshow("Image", img)
-    cv2.imshow("Canvas", canvas)
+    # cv2.imshow("Image", img)
+    # cv2.imshow("Canvas", canvas)
+    cv2.imshow("image_canvas_combined", image_combined)
 
     # Keep the window open and update it for each frame; wait for 1 millisecond between frames
     cv2.waitKey(1)
