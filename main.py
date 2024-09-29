@@ -11,7 +11,12 @@ from PIL import Image
 
 import streamlit as st
 
+import pyttsx3
+import threading
+
 load_dotenv()
+
+engine = pyttsx3.init()
 
 st.set_page_config(page_title="AI Math Solver", page_icon="✏️", layout="wide")
 
@@ -33,7 +38,7 @@ with col1:
     st.markdown("- 🤘 All except pinky: Send to AI")
 with col2:
     st.title("Answer")
-    st_output = st.subheader("")
+    st_output = st.empty()
 
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=gemini_api_key)
@@ -45,13 +50,13 @@ cap = cv2.VideoCapture(0)
 cap.set(3, 1024)
 cap.set(4, 768)
 
+
 # Initialize the HandDetector class with the given parameters
 detector = HandDetector(staticMode=False, maxHands=1, modelComplexity=1, detectionCon=0.7, minTrackCon=0.5)
 def getHandInfo(img):
     # Find hands in the current frame
-    # The 'draw' parameter draws landmarks and hand outlines on the image if set to True
-    # The 'flipType' parameter flips the image, making it easier for some detections
-    hands, img = detector.findHands(img, draw=True, flipType=True)
+    # Set draw=False to prevent drawing the bounding box and hand type
+    hands, img = detector.findHands(img, draw=False, flipType=True)
 
     # Check if any hands are detected
     if hands:
@@ -95,10 +100,15 @@ def sendToAI(model, canvas, fingers):
         res = model.generate_content(["Solve this math problem, and respond with the correct asnwer along with proper explanation!", pil_image])
         return res.text
 
+def speak_text(text):
+    engine.say(text)
+    engine.runAndWait()
+
 prev_pos = None
 canvas = None
 image_combined = None
 answer = "Please Ask a question, I'd be happy to help you!😁"
+prev_ans = None
 # Continuously get frames from the webcam
 while True:
     # Capture each frame from the webcam
@@ -119,9 +129,20 @@ while True:
 
     image_combined = cv2.addWeighted(img, 0.7, canvas, 0.3, 0)
     FRAME_WINDOW.image(image_combined, channels="BGR")
-    st_output.text(answer if answer!=None else 'Waiting for the question...') 
+    st_output.markdown(f"### Solution:\n{answer if answer else 'Waiting for the question...'}") 
 
-    
+    # Global variable to store the previous answer
+    previous_answer = None
+
+    if answer and answer != "Please Ask a question, I'd be happy to help you!😁":
+        if answer != previous_answer:
+            st_output.markdown(f"### Solution:\n{answer}")
+            # Start a new thread to speak the answer
+            threading.Thread(target=speak_text, args=(answer,)).start()
+            previous_answer = answer
+    else:
+        st_output.info("Draw a math problem and use the 'Send to AI' gesture to get an answer.")
+
     # Display the image in a window
     # cv2.imshow("Image", img)
     # cv2.imshow("Canvas", canvas)
